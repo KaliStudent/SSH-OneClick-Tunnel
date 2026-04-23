@@ -1,0 +1,10 @@
+import React, { useState, useEffect } from 'react';
+import { Dialog, Button, TextField } from '../components';
+type P = { open: boolean; onClose: () => void; profileId: string; onCreated: () => void };
+export default function TunnelWizard({ open, onClose, profileId, onCreated }: P) {
+  const [n, sN] = useState(''); const [rH, sRH] = useState(''); const [rP, sRP] = useState(''); const [lP, sLP] = useState(''); const [ld, sLd] = useState(false); const [err, sErr] = useState('');
+  useEffect(() => { if (open) { sN(''); sRH(''); sRP(''); sLP(''); sLd(false); sErr(''); } }, [open]);
+  async function go() { if (!rH.trim() || !rP.trim()) { sErr('Remote host and port required.'); return; } sLd(true); sErr(''); try { await window.sshWorkbench.tunnels.create(profileId, { kind: 'local', name: n || `Tunnel -> ${rH}:${rP}`, remoteHost: rH, remotePort: Number(rP), bindHost: '127.0.0.1', requestedLocalPort: lP ? Number(lP) : undefined, disposable: true, idleTimeoutMs: 3600000 }); onCreated(); onClose(); } catch (e: any) { sErr(String(e?.message ?? e)); } finally { sLd(false); } }
+  return (<Dialog open={open} onClose={onClose} title="Create Disposable Tunnel" description="Secure tunnel through SSH." footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" onClick={go} disabled={ld}>{ld ? 'Creating...' : 'Create'}</Button></>}>
+    <div className="col gap-md"><TextField label="Name" placeholder="Dev API" value={n} onChange={sN} autoFocus /><TextField label="Remote Host" placeholder="10.0.1.50" value={rH} onChange={sRH} /><TextField label="Remote Port" type="number" placeholder="8080" value={rP} onChange={sRP} /><TextField label="Local Port (optional)" type="number" placeholder="Auto" value={lP} onChange={sLP} /><div className="explain-panel open"><div className="explain-panel-inner">Tunnel 127.0.0.1:{lP || '(auto)'} -&gt; {rH || '?'}:{rP || '?'} via SSH. Localhost only.</div></div>{err && <div style={{ color: 'var(--danger)', fontSize: 'var(--fs-sm)' }}>{err}</div>}</div></Dialog>);
+}
